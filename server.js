@@ -5,13 +5,12 @@ const FileStore = require("session-file-store")(session);
 
 //init
 const app = express();
-const maria = require('./database/connect/maria');
-maria.connect();
 const port = 8000
 
 app.use(express.json()) //보낼 json을 자동으로 string으로 변환 / 받은 string을
 
 app.use(session({ 
+    //난수로 만들라고 하셨음
     secret: "abcd",   // 세션을 암호화
     resave: false,            // 세션을 항상 저장할지 결정 (false를 권장)     
     saveUninitialized: true,  // 초기화 되지 않은채로 스토어에 저장할지를 결정

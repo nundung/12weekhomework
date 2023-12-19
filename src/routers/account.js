@@ -1,6 +1,7 @@
 // Import
 const router = require("express").Router()
-
+const session = require("express-session");
+const conn = require('../../database/connect/maria');
 
 //Apis
 //회원가입 
@@ -34,19 +35,21 @@ router.post("/", (req, res) => {
         //("이름은 한글 2~4자로 입력해주세요.")
 
         //이메일 정규식
-        var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
+        var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,}$/i;
         if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
 
-        //db에 값 삽입
-
-        //db 결과 처리
-        result.success = true
-    }
-    catch (e) {
-        result.message = e.message
-    }
-    finally {
-        res.send(result)
+        conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (error, results) => {
+            if (error) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("성공");
+                Object.assign(signUpResult, { success: true, message: "회원가입에 성공했습니다."});
+                res.send(signUpResult)
+            }
+        });
+    }catch (e) {
+        signUpResult.message = e.message;
     }
 })
 
@@ -55,10 +58,7 @@ router.post("/id", (req, res) => {
     const {id} = req.body
     const checkIdResult = {
         "success": false,
-        "message": "",
-        // "data": {
-        // "isDuplicated" : false
-        // }
+        "message": ""
     }
     try {
         //예외처리
@@ -68,16 +68,25 @@ router.post("/id", (req, res) => {
         var idReg = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,18}$/;
         if(!idReg.test(id)) throw new Error("아이디 값이 이상해요2")
 
-        //db에 값 삽입
-
-        //db 결과 처리
-        result.success = true
+        //db 값 불러오기
+        conn.query('SELECT * FROM account WHERE id=?', [id], (error, results) => {
+            if (error) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                if (results.length > 0) {
+                    // 중복된 아이디가 존재하는 경우
+                    checkIdResult.message = "사용불가한 아이디입니다.";
+                } else {
+                    // 중복된 아이디가 존재하지 않는 경우-
+                    Object.assign(checkIdResult, { success: true, message: "사용가능한 아이디입니다."});
+                }
+                res.send(checkIdResult)
+            }
+        });
     }
     catch (e) {
         result.message = e.message
-    }
-    finally {
-        res.send(result)
     }
 })
 
@@ -100,21 +109,52 @@ router.post("/login", (req, res) => {
         //비밀번호 정규식
         var pwReg = /^(?=.*[a-zA-z])(?=.*[0-9])(?=.*[$`~!@$!%*#^?&\\(\\)\-_=+]).{8,20}$/;
         if(!pwReg.test(pw)) throw new Error("비밀번호 값이 이상해요2")
+    
+        //db값 불러오기
+        conn.query('SELECT * FROM account WHERE id=? AND pw=?', [id, pw], (error, results) => {
+            if (error) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("성공");
+                req.session.user = {
+                    id: results[0].id,
+                    pw: results[0].pw,
+                    name: results[0].name,
+                    email: results[0].email
+                };
+                logInResult.success = true;
+                logInResult.message = "로그인에 성공했습니다.";
+                res.send(logInResult)
+            }
+        });
     }
     catch (e) {
-        result.message = e.message
-    }
-    finally {
-        res.send(result)
+        logInResult.message = e.message
     }
 })
 
 //내정보 보기
 router.get("/info", (req, res) => {
-    //id값은 세션에서 받아줘서 :id
     const infoResult = {
         "success": false,
-        "message": ""
+        "message": "",
+        "id": "",
+        "pw": "",
+        "name": "",
+        "email": "",
+    }
+    try {
+        if (req.session.user) {
+            const { id, pw, name, email } = req.session.user;
+            Object.assign(infoResult, { success: true, message: "정보 불러오기 성공", id, pw, name, email});
+            res.send(infoResult)}
+        else {
+            throw new Error("세션에 사용자 정보가 없습니다.");
+        }
+    }
+    catch (e) {
+        infoResult.message = e.message
     }
 })
 
@@ -126,6 +166,8 @@ router.put("/info", (req, res) => {
         "message": ""
     }
     try {
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        const id = req.session.user.id;
         //예외처리
         if(pw === null || pw === "" || pw === undefined) throw new Error("비밀번호 값이 이상해요")
         if(name === null || pw === "" || pw === undefined) throw new Error("이름 값이 이상해요")
@@ -143,25 +185,54 @@ router.put("/info", (req, res) => {
         var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i;
         if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
 
-        //db에 값 삽입
-
-        //db 결과 처리
-        result.success = true
+        //db에 값 업데이트
+        conn.query('UPDATE account SET pw=?, name=?, email=? WHERE id=?', [pw, name, email, id], (error) => {
+            if (error) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("성공");
+                req.session.user = {
+                    pw: pw,
+                    name: name,
+                    email: email
+                };
+                editInfoResult.success = true;
+                editInfoResult.message = "정보수정이 완료되었습니다.";
+                res.send(editInfoResult)
+            }
+        });
     }
     catch (e) {
-        result.message = e.message
-    }
-    finally {
-        res.send(result)
+        editInfoResult.message = e.message
     }
 })
 
 //계정 삭제
 router.delete("/", (req, res) => {
-    const {userId} = req.body
-    const deleteResult = {
+    const deleteAccountResult = {
         "success": false,
         "message": ""
+    }
+    try {
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        const id = req.session.user.id;
+
+        //db에 값 업데이트
+        conn.query('DELETE FROM account WHERE id=?', [id], (error) => {
+            if (error) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("회원탈퇴 성공");
+                deleteAccountResult.success = true;
+                deleteAccountResult.message = "회원탈퇴가 완료되었습니다.";
+                res.send(deleteAccountResult)
+            }
+        })
+    }
+    catch (e) {
+        deleteAccountResult.message = e.message
     }
 })
 
