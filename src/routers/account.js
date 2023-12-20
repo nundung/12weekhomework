@@ -38,8 +38,8 @@ router.post("/", (req, res) => {
         var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,}$/i;
         if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
 
-        conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (error, results) => {
-            if (error) {
+        conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (err, results) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -50,6 +50,7 @@ router.post("/", (req, res) => {
         });
     }catch (e) {
         signUpResult.message = e.message;
+        res.status(400).send(signUpResult);
     }
 })
 
@@ -69,8 +70,8 @@ router.post("/id", (req, res) => {
         if(!idReg.test(id)) throw new Error("아이디 값이 이상해요2")
 
         //db 값 불러오기
-        conn.query('SELECT * FROM account WHERE id=?', [id], (error, results) => {
-            if (error) {
+        conn.query('SELECT * FROM account WHERE id=?', [id], (err, results) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -86,7 +87,8 @@ router.post("/id", (req, res) => {
         });
     }
     catch (e) {
-        result.message = e.message
+        checkIdResult.message = e.message;
+        res.status(400).send(checkIdResult);
     }
 })
 
@@ -112,8 +114,8 @@ router.post("/login", (req, res) => {
         if(!pwReg.test(pw)) throw new Error("비밀번호 값이 이상해요2")
     
         //db값 불러오기
-        conn.query('SELECT * FROM account WHERE id=? AND pw=?', [id, pw], (error, results) => {
-            if (error) {
+        conn.query('SELECT * FROM account WHERE id=? AND pw=?', [id, pw], (err, results) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -132,11 +134,32 @@ router.post("/login", (req, res) => {
         });
     }
     catch (e) {
-        logInResult.message = e.message
+        logInResult.message = e.message;
+        res.status(400).send(logInResult);
     }
 })
 
 //로그아웃
+router.get("/logout", (req, res) => {
+    const logOutResult = {
+        "success": false,
+        "message": ""
+    }
+    try {
+        req.session.destroy((err) => {
+            if (err) {
+                res.status(500).send('세션 제거 실패');
+            } else {
+                res.clearCookie('connect.sid'); // 세션 쿠키 삭제
+                res.send('로그아웃 완료');
+            }
+        });
+    }
+    catch (e) {
+        logOutResult.message = e.message;
+        res.status(400).send(logOutResult);
+    }
+});
 
 //내정보 보기
 router.get("/info", (req, res) => {
@@ -155,7 +178,8 @@ router.get("/info", (req, res) => {
         res.send(infoResult)
     }
     catch (e) {
-        infoResult.message = e.message
+        infoResult.message = e.message;
+        res.status(400).send(infoResult);
     }
 })
 
@@ -187,8 +211,8 @@ router.put("/info", (req, res) => {
         if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
 
         //db에 값 업데이트
-        conn.query('UPDATE account SET pw=?, name=?, email=? WHERE id=?', [pw, name, email, id], (error) => {
-            if (error) {
+        conn.query('UPDATE account SET pw=?, name=?, email=? WHERE id=?', [pw, name, email, id], (err) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -205,7 +229,8 @@ router.put("/info", (req, res) => {
         });
     }
     catch (e) {
-        editInfoResult.message = e.message
+        editInfoResult.message = e.message;
+        res.status(400).send(editInfoResult);
     }
 })
 
@@ -220,8 +245,8 @@ router.delete("/", (req, res) => {
         const id = req.session.user.id;
 
         //db에 값 업데이트
-        conn.query('DELETE FROM account WHERE id=?', [id], (error) => {
-            if (error) {
+        conn.query('DELETE FROM account WHERE id=?', [id], (err) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -233,7 +258,8 @@ router.delete("/", (req, res) => {
         })
     }
     catch (e) {
-        deleteAccountResult.message = e.message
+        deleteAccountResult.message = e.message;
+        res.status(400).send(deleteAccountResult);
     }
 })
 

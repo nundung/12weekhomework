@@ -21,8 +21,8 @@ router.post("/", (req, res) => {
         const idx = req.session.user.idx;
 
         //db에 값 입력하기
-        conn.query('INSERT INTO post (account_idx, title, content) VALUES (?, ?, ?)', [idx, title, content], (error) => {
-            if (error) {
+        conn.query('INSERT INTO post (account_idx, title, content) VALUES (?, ?, ?)', [idx, title, content], (err) => {
+            if (err) {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
@@ -34,7 +34,8 @@ router.post("/", (req, res) => {
         });
     }
     catch (e) {
-        uploadPostResult.message = e.message
+        uploadPostResult.message = e.message;
+        res.status(400).send(uploadPostResult);
     }
 })
 
