@@ -119,17 +119,24 @@ router.post("/login", (req, res) => {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
-                console.log("성공");
-                req.session.user = {
-                    idx: results[0].idx,
-                    id: results[0].id,
-                    pw: results[0].pw,
-                    name: results[0].name,
-                    email: results[0].email
-                };
-                logInResult.success = true;
-                logInResult.message = "로그인에 성공했습니다.";
-                res.send(logInResult)
+                if (results.length === 0 || results[0] === undefined) {
+                    // 로그인 실패: 해당 아이디와 비밀번호로 계정을 찾을 수 없음
+                    logInResult.message = "아이디 또는 비밀번호가 올바르지 않습니다.";
+                    res.status(400).send(logInResult);
+                } else {
+                    // 로그인 성공
+                    console.log("성공");
+                    req.session.user = {
+                        idx: results[0].idx,
+                        id: results[0].id,
+                        pw: results[0].pw,
+                        name: results[0].name,
+                        email: results[0].email
+                    };
+                    logInResult.success = true;
+                    logInResult.message = "로그인에 성공했습니다.";
+                    res.send(logInResult);
+                }
             }
         });
     }
