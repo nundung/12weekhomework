@@ -78,7 +78,7 @@ router.post("/id", (req, res) => {
                     // 중복된 아이디가 존재하는 경우
                     checkIdResult.message = "사용불가한 아이디입니다.";
                 } else {
-                    // 중복된 아이디가 존재하지 않는 경우-
+                    // 중복된 아이디가 존재하지 않는 경우
                     Object.assign(checkIdResult, { success: true, message: "사용가능한 아이디입니다."});
                 }
                 res.send(checkIdResult)
@@ -98,6 +98,7 @@ router.post("/login", (req, res) => {
         "message": ""
     }
     try {
+        if (req.session.user) //메인페이지로 이동
         //예외처리
         if(id === null || id === "" || id === undefined) throw new Error("아이디 값이 이상해요")
         if(pw === null || pw === "" || pw === undefined) throw new Error("비밀번호 값이 이상해요")
@@ -118,6 +119,7 @@ router.post("/login", (req, res) => {
             else {
                 console.log("성공");
                 req.session.user = {
+                    idx: results[0].idx,
                     id: results[0].id,
                     pw: results[0].pw,
                     name: results[0].name,
@@ -134,6 +136,8 @@ router.post("/login", (req, res) => {
     }
 })
 
+//로그아웃
+
 //내정보 보기
 router.get("/info", (req, res) => {
     const infoResult = {
@@ -145,13 +149,10 @@ router.get("/info", (req, res) => {
         "email": "",
     }
     try {
-        if (req.session.user) {
-            const { id, pw, name, email } = req.session.user;
-            Object.assign(infoResult, { success: true, message: "정보 불러오기 성공", id, pw, name, email});
-            res.send(infoResult)}
-        else {
-            throw new Error("세션에 사용자 정보가 없습니다.");
-        }
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        const { id, pw, name, email } = req.session.user;
+        Object.assign(infoResult, { success: true, message: "정보 불러오기 성공", id, pw, name, email});
+        res.send(infoResult)
     }
     catch (e) {
         infoResult.message = e.message
