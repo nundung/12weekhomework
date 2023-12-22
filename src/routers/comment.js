@@ -36,20 +36,63 @@ router.post("/:postidx", (req, res) => {
 })
 
 //댓글 수정
-router.put("/:commentid", (req, res) => {
-    const {commentContent} = req.body
+router.put("/:commentidx", (req, res) => {
+    const contentIdx = req.params.commentidx;
+    const {content} = req.body
     const editCommentResult = {
         "success": false,
         "message": ""
     }
+    try {
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        const idx = req.session.user.idx;
+
+        //db에 값 입력하기
+        conn.query('UPDATE comment SET content=? WHERE idx=?', [content, contentIdx], (err) => {
+            if (err) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("성공");
+                editCommentResult.success = true;
+                editCommentResult.message = "댓글 수정이 완료되었습니다.";
+                res.send(editCommentResult)
+            }
+        });
+    }
+    catch (e) {
+        editCommentResult.message = e.message;
+        res.status(400).send(editCommentResult);
+    }
 })
 
 //댓글 삭제
-router.delete("/:commentid", (req, res) => {
-    const {commentId} = req.body
+router.delete("/:commentidx", (req, res) => {
+    const contentIdx = req.params.commentidx;
     const deleteCommentResult = {
         "success": false,
         "message": ""
+    }
+    try {
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        const idx = req.session.user.idx;
+
+        //db에 값 입력하기
+        conn.query('DELETE FROM comment WHERE idx=?', [contentIdx], (err) => {
+            if (err) {
+                throw new Error("데이터베이스가 이상해요")
+            } 
+            else {
+                console.log("성공");
+                deleteCommentResult.success = true;
+                deleteCommentResult.message = "댓글 삭제가 완료되었습니다.";
+                res.send(deleteCommentResult)
+            }
+        });
+    }
+    catch (e) {
+        deleteCommentResult.message = e.message;
+        res.status(400).send(deleteCommentResult);
     }
 })
 

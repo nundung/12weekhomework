@@ -101,7 +101,7 @@ router.delete("/:postidx", (req, res) => {
 })
 
 //게시글 읽기, 댓글 읽기
-router.get("/:postid", (req, res) => {
+router.get("/:postidx", (req, res) => {
     const {postTitle,postAuthorId, postContent, commentAuthorId, commentContent} = req.body
 })
 
