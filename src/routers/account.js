@@ -4,8 +4,8 @@ const session = require("express-session");
 const conn = require('../../database/connect/maria');
 
 //Apis
-//회원가입 
-router.post("/", (req, res) => {
+//회원가입 & 아이디/이메일 중복체크
+router.post("/", async (req, res) => {
     const {id, pw, name, email} = req.body
     //백엔드에서 프론트로 보내줄 값 미리 생성
     const signUpResult = {
@@ -38,6 +38,48 @@ router.post("/", (req, res) => {
         var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,}$/i;
         if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
 
+        //아이디 중복체크
+        const checkId = () => {
+            return new Promise((resolve, reject) => {
+                conn.query('SELECT * FROM account WHERE id=?', [id], (err, results) => {
+                    if (err) {
+                        reject(new Error("데이터베이스가 이상해요"));
+                    } else {
+                        if (results.length > 0) {
+                            reject(new Error("이미 사용 중인 아이디입니다."));
+                        } else {
+                            resolve();
+                        }
+                    }
+                });
+            });
+        };
+
+        //이메일 중복체크
+        const checkEmail = () => {
+            return new Promise((resolve, reject) => {
+                conn.query('SELECT * FROM account WHERE email=?', [email], (err, results) => {
+                    if (err) {
+                        reject(new Error("데이터베이스가 이상해요"));
+                    } else {
+                        if (results.length > 0) {
+                            reject(new Error("이미 사용 중인 이메일입니다."));
+                        } else {
+                            resolve();
+                        }
+                    }
+                });
+            });
+        };
+
+        // 아이디 중복체크 실행
+        await checkId();
+
+        //이메일 중복체크 실행
+        await checkEmail();
+
+
+        // 아이디 중복이 아닌 경우 회원가입 진행
         conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (err, results) => {
             if (err) {
                 throw new Error("데이터베이스가 이상해요")
@@ -48,6 +90,7 @@ router.post("/", (req, res) => {
                 res.send(signUpResult)
             }
         });
+
     }catch (e) {
         signUpResult.message = e.message;
         res.status(400).send(signUpResult);
