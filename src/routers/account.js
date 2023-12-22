@@ -97,44 +97,6 @@ router.post("/", async (req, res) => {
     }
 })
 
-//아이디 중복체크
-router.post("/id", (req, res) => {
-    const {id} = req.body
-    const checkIdResult = {
-        "success": false,
-        "message": ""
-    }
-    try {
-        //예외처리
-        if(id === null || id === "" || id === undefined) throw new Error("아이디 값이 이상해요")
-
-        //아이디 정규식
-        var idReg = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,18}$/;
-        if(!idReg.test(id)) throw new Error("아이디 값이 이상해요2")
-
-        //db 값 불러오기
-        conn.query('SELECT * FROM account WHERE id=?', [id], (err, results) => {
-            if (err) {
-                throw new Error("데이터베이스가 이상해요")
-            } 
-            else {
-                if (results.length > 0) {
-                    // 중복된 아이디가 존재하는 경우
-                    checkIdResult.message = "사용불가한 아이디입니다.";
-                } else {
-                    // 중복된 아이디가 존재하지 않는 경우
-                    Object.assign(checkIdResult, { success: true, message: "사용가능한 아이디입니다."});
-                }
-                res.send(checkIdResult)
-            }
-        });
-    }
-    catch (e) {
-        checkIdResult.message = e.message;
-        res.status(400).send(checkIdResult);
-    }
-})
-
 //로그인
 router.post("/login", (req, res) => {
     const {id, pw} = req.body
@@ -143,8 +105,8 @@ router.post("/login", (req, res) => {
         "message": ""
     }
     try {
-        if (req.session.user) //메인페이지로 이동
-        //예외처리
+        if (req.session.user) throw new Error("이미 로그인 되어있습니다.")
+
         if(id === null || id === "" || id === undefined) throw new Error("아이디 값이 이상해요")
         if(pw === null || pw === "" || pw === undefined) throw new Error("비밀번호 값이 이상해요")
 

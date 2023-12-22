@@ -15,7 +15,7 @@ router.post("/:postidx", (req, res) => {
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
         const idx = req.session.user.idx;
-
+        console.log(idx, postIdx, content)
         //db에 값 입력하기
         conn.query('INSERT INTO comment (post_idx, account_idx, content) VALUES (?, ?, ?)', [postIdx, idx, content], (err) => {
             if (err) {

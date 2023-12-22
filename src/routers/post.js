@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
         "message": ""
     }
     try{
-        conn.query('SELECT * FROM posts ORDER BY created_at DESC', (err, results) => {
+        conn.query('SELECT * FROM post ORDER BY created_at DESC', (err, results) => {
             if (err) {
                 res.status(500).send("게시글을 불러오는 중 문제가 발생했습니다.");
             } else {
@@ -96,7 +96,7 @@ router.delete("/:postidx", (req, res) => {
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
         const idx = req.session.user.idx;
-
+        console.log(idx, postIdx)
         //db에 값 입력하기
         conn.query('DELETE FROM post WHERE idx=?', [postIdx], (err) => {
             if (err) {
