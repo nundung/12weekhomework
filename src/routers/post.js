@@ -6,8 +6,24 @@ const conn = require('../../database/connect/maria');
 //Apis
 //게시글 목록(게시판)
 router.get("/", (req, res) => {
-    const {postTitle, postAuthorId} = req.body
-})
+    const postListResult = {
+        "success": false,
+        "message": ""
+    }
+    try{
+        conn.query('SELECT * FROM posts ORDER BY created_at DESC', (err, results) => {
+            if (err) {
+                res.status(500).send("게시글을 불러오는 중 문제가 발생했습니다.");
+            } else {
+                res.send(results);
+            }
+        });
+    }
+    catch (e) {
+        postListResult.message = e.message;
+        res.status(400).send(postListResult);
+    }
+});
 
 //게시글 업로드
 router.post("/", (req, res) => {
