@@ -35,6 +35,19 @@ router.post("/:postidx", (req, res) => {
     }
 })
 
+//댓글 읽기
+router.get("/:postidx/comment", (req, res) => {
+    const postIdx = req.params.postidx;
+    const page = req.query.page || 1; // 기본값으로 1 설정
+    const perPage = req.query.per_page || 10;
+
+    try {
+        if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
+        
+        conn.query('SELECT * from comment')
+    }
+})
+
 //댓글 수정
 router.put("/:commentidx", (req, res) => {
     const contentIdx = req.params.commentidx;

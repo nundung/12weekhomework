@@ -6,22 +6,31 @@ const conn = require('../../database/connect/maria');
 //Apis
 //게시글 목록(게시판)
 router.get("/", (req, res) => {
-    const postListResult = {
+    const postBoardResult = {
         "success": false,
         "message": ""
     }
     try{
         conn.query('SELECT * FROM post ORDER BY created_at DESC', (err, results) => {
             if (err) {
-                res.status(500).send("게시글을 불러오는 중 문제가 발생했습니다.");
-            } else {
-                res.send(results);
+                throw new Error("데이터베이스가 이상해요");
+            }
+            else {
+                if (results.length > 0) {
+                    res.send(results);
+                    postBoardResult.success = true;
+                    postBoardResult.message = "게시글 목록 불러오기 성공";
+                }
+                else {
+                    postBoardResult.success = true;
+                    postBoardResult.message = "게시글 목록이 비어있습니다.";
+                }
             }
         });
     }
     catch (e) {
-        postListResult.message = e.message;
-        res.status(400).send(postListResult);
+        postBoardResult.message = e.message;
+        res.status(400).send(postBoardResult);
     }
 });
 
@@ -40,7 +49,7 @@ router.post("/", (req, res) => {
         conn.query('INSERT INTO post (account_idx, title, content) VALUES (?, ?, ?)', [idx, title, content], (err) => {
             if (err) {
                 throw new Error("데이터베이스가 이상해요")
-            } 
+            }
             else {
                 console.log("성공");
                 uploadPostResult.success = true;
@@ -71,7 +80,7 @@ router.put("/:postidx", (req, res) => {
         conn.query('UPDATE post SET title=?, content=? WHERE idx=?', [title, content, postIdx], (err) => {
             if (err) {
                 throw new Error("데이터베이스가 이상해요")
-            } 
+            }
             else {
                 console.log("성공");
                 editPostResult.success = true;
@@ -103,10 +112,9 @@ router.delete("/:postidx", (req, res) => {
                 throw new Error("데이터베이스가 이상해요")
             } 
             else {
-                console.log("성공");
                 deletePostResult.success = true;
                 deletePostResult.message = "게시글이 삭제되었습니다.";
-                res.send(deletePostResult)
+                res.send(deletePostResult);
             }
         });
     }
@@ -116,8 +124,46 @@ router.delete("/:postidx", (req, res) => {
     }
 })
 
-//게시글 읽기, 댓글 읽기
 router.get("/:postidx", (req, res) => {
+    const postIdx = req.params.postidx;
+    const viewPostResult = {
+        "success": false,
+        "message": "",
+        "accountIdx": "",
+        "title": "",
+        "content": ""
+    }
+    try {
+        if(!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.")
+
+        conn.query('SELECT account_idx, title, content FROM post WHERE idx=?', [postIdx], (err,results) => {
+            if (err) {
+                throw new Error("데이터베이스가 이상해요")
+            }
+            else {
+                if (results.length > 0) {
+                    viewPostResult.success = true;
+                    viewPostResult.message = "게시글 불러오기 성공";
+                    viewPostResult.accountIdx = results[0].account_idx;
+                    viewPostResult.title = results[0].title;
+                    viewPostResult.content = results[0].content;
+                    res.send(viewPostResult);
+                }
+                else {
+                    viewPostResult.message = "게시글을 찾을 수 없습니다.";
+                    res.status(404).send(viewPostResult);
+                }
+            }
+        })
+    }
+    catch (e) {
+        viewPostResult.message = e.message;
+        res.status(400).send(viewPostResult);
+    }
+})
+
+//게시글 읽기, 댓글 읽기
+router.get("/:postidx/comments?page={page_number}&per_page={comments_per_page}", (req, res) => {
     const {postTitle,postAuthorId, postContent, commentAuthorId, commentContent} = req.body
 })
 
