@@ -40,11 +40,19 @@ router.get("/:postidx/comment", (req, res) => {
     const postIdx = req.params.postidx;
     const page = req.query.page || 1; // 기본값으로 1 설정
     const perPage = req.query.per_page || 10;
-
+    const viewCommentResult = {
+        "success": false,
+        "message": ""
+    }
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
         
         conn.query('SELECT * from comment')
+    }
+    catch (e) {
+        viewCommentResult.message = e.message;
+        res.status(400).send(viewCommentResult);
+        
     }
 })
 
