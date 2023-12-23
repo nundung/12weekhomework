@@ -1,7 +1,8 @@
 // Import
 const router = require("express").Router()
-const session = require("express-session");
-const conn = require('../../database/connect/maria');
+const session = require("express-session")
+const conn = require('../../database/connect/maria')
+const exception = require('../modules/exception')
 
 //Apis
 //회원가입 & 아이디/이메일 중복체크
@@ -13,68 +14,38 @@ router.post("/", async (req, res) => {
         "message": ""
     }
     try {
-        //예외처리
-        if(id === null || id === "" || id === undefined) throw new Error("아이디 값이 이상해요")
-        if(pw === null || pw === "" || pw === undefined) throw new Error("비밀번호 값이 이상해요")
-        if(name === null || pw === "" || pw === undefined) throw new Error("이름 값이 이상해요")
-        if(email === null || email === "" || email === undefined) throw new Error("이메일 값이 이상해요")
-
-        //아이디 정규식
-        var idReg = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,18}$/;
-        if(!idReg.test(id)) throw new Error("아이디 값이 이상해요2")
-        //("아이디는 영문, 숫자의 조합으로 6~18자로 입력해주세요.");
-
-        //비밀번호 정규식
-        var pwReg = /^(?=.*[a-zA-z])(?=.*[0-9])(?=.*[$`~!@$!%*#^?&\\(\\)\-_=+]).{8,20}$/;
-        if(!pwReg.test(pw)) throw new Error("비밀번호 값이 이상해요2")
-        //("비밀번호는 영문, 숫자, 특수문자의 조합으로 8~20자로 입력해주세요.");
-
-        //이름 정규식
-        var nameReg = /^[가-힣]{2,4}$/;
-        if(!nameReg.test(name)) throw new Error("이름 값이 이상해요2")
-        //("이름은 한글 2~4자로 입력해주세요.")
-
-        //이메일 정규식
-        var emailReg = /^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,}$/i;
-        if(!emailReg.test(email)) throw new Error("이메일 값이 이상해요2")
+        exception.idCheck(id)
+        exception.pwCheck(pw)
+        exception.nameCheck(name)
+        exception.emailCheck(email)
 
         //아이디 중복체크
         conn.query('SELECT * FROM account WHERE id=?', [id], (err, results) => {
-            if (err) {
-                throw new Error("데이터베이스가 이상해요");
+            // throw new Error("데이터베이스가 이상해요")   conn.query가 비동기 함수이므로 throw를 던져도
+            // 해당 예외 호출 지점으로 전달되지 않음.
+            if (err) return res.send(signUpResult)
+            if (results.length > 0) {
+                signUpResult.message = "이미 사용 중인 이메일입니다."
+                return res.send(signUpResult);
             }
-            else {
+            //이메일 중복체크
+            conn.query('SELECT * FROM account WHERE email=?', [email], (err, results) => {
+                if (err) return res.send(signUpResult)
                 if (results.length > 0) {
-                    throw new Error("이미 사용 중인 아이디입니다.");
+                    signUpResult.message = "이미 사용 중인 이메일입니다."
+                    return res.send(signUpResult);
                 }
-            }
-        });
-
-        //이메일 중복체크
-        conn.query('SELECT * FROM account WHERE email=?', [email], (err, results) => {
-            if (err) {
-                throw new Error("데이터베이스가 이상해요");
-            } else {
-                if (results.length > 0) {
-                    throw new Error("이미 사용 중인 이메일입니다.");
-                }
-            }
-        });
-
-        // 아이디/이메일 중복이 아닌 경우 회원가입 진행
-        conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (err, results) => {
-            if (err) {
-                throw new Error("데이터베이스가 이상해요")
-            } 
-            else {
-                Object.assign(signUpResult, { success: true, message: "회원가입에 성공했습니다."});
-                res.send(signUpResult)
-            }
-        });
-
-    }catch (e) {
-        signUpResult.message = e.message;
-        res.status(400).send(signUpResult);
+                // 아이디/이메일 중복이 아닌 경우 회원가입 진행
+                conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (err) => {
+                if (err) return res.send(signUpResult)
+                signUpResult.success = true
+                })
+            })
+        })
+    }
+    catch (e) {
+        signUpResult.message = e.message
+        res.status(400).send(signUpResult)
     }
 })
 
@@ -104,25 +75,23 @@ router.post("/login", (req, res) => {
             if (err) {
                 throw new Error("데이터베이스가 이상해요");
             } 
-            else {
-                if (results.length === 0 || results[0] === undefined) {
-                    // 로그인 실패: 해당 아이디와 비밀번호로 계정을 찾을 수 없음
-                    logInResult.message = "아이디 또는 비밀번호가 올바르지 않습니다.";
-                    res.status(400).send(logInResult);
-                } else {
-                    // 로그인 성공
-                    req.session.user = {
-                        idx: results[0].idx,
-                        id: results[0].id,
-                        pw: results[0].pw,
-                        name: results[0].name,
-                        email: results[0].email
-                    };
-                    logInResult.success = true;
-                    logInResult.message = "로그인에 성공했습니다.";
-                    res.send(logInResult);
-                }
-            }
+            if (results.length === 0 || results[0] === undefined) {
+                // 로그인 실패: 해당 아이디와 비밀번호로 계정을 찾을 수 없음
+                logInResult.message = "아이디 또는 비밀번호가 올바르지 않습니다.";
+                return res.send(logInResult);
+            } 
+            // 로그인 성공
+            req.session.user = {
+                idx: results[0].idx,
+                id: results[0].id,
+                pw: results[0].pw,
+                name: results[0].name,
+                email: results[0].email
+            };
+            //Object.assign(logInResult, { success: true, message: "로그인에 성공했습니다."});
+            logInResult.message = "로그인에 성공했습니다.";
+            logInResult.success = true;
+            res.send(logInResult);
         });
     }
     catch (e) {
