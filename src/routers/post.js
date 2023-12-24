@@ -1,32 +1,26 @@
 // Import
-const router = require("express").Router();
-const session = require("express-session");
-const conn = require('../../database/connect/maria');
+const router = require("express").Router()
+const conn = require('../../database/connect/maria')
 
 //Apis
 //게시글 목록(게시판)
-router.get("/", (req, res) => {
+router.get("/", (res) => {
     const postBoardResult = {
         "success": false,
         "message": ""
     }
     try{
-        conn.query('SELECT * FROM post ORDER BY created_at DESC', (err, results) => {
-            if (err) {
-                throw new Error("데이터베이스가 이상해요");
+        conn.query('SELECT * FROM post ORDER BY idx DESC', (err, results) => {
+            if (err) res.send(postBoardResult)
+            if (results.length > 0) {
+                postBoardResult.success = true;
+                res.send(postBoardResult);
             }
             else {
-                if (results.length > 0) {
-                    res.send(results);
-                    postBoardResult.success = true;
-                    postBoardResult.message = "게시글 목록 불러오기 성공";
-                }
-                else {
-                    postBoardResult.success = true;
-                    postBoardResult.message = "게시글 목록이 비어있습니다.";
-                }
+                postBoardResult.success = true;
+                postBoardResult.message = "게시글 목록이 비어있습니다.";
             }
-        });
+        })
     }
     catch (e) {
         postBoardResult.message = e.message;

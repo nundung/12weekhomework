@@ -5,7 +5,7 @@ const exception = require('../modules/exception')
 
 //Apis
 //회원가입 & 아이디/이메일 중복체크
-router.post("/", async (req, res) => {
+router.post("/", (req, res) => {
     const {id, pw, name, email} = req.body
     //백엔드에서 프론트로 보내줄 값 미리 생성
     const signUpResult = {
@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
             // 해당 예외 호출 지점으로 전달되지 않음.
             if (err) return res.send(signUpResult)
             if (results.length > 0) {
-                signUpResult.message = "이미 사용 중인 이메일입니다."
+                signUpResult.message = "이미 사용 중인 아이디입니다."
                 return res.send(signUpResult)
             }
             //이메일 중복체크
@@ -38,6 +38,7 @@ router.post("/", async (req, res) => {
                 conn.query('INSERT INTO account (id, pw, name, email) VALUES (?, ?, ?, ?)', [id, pw, name, email], (err) => {
                 if (err) return res.send(signUpResult)
                 signUpResult.success = true
+                res.send(signUpResult)
                 })
             })
         })
@@ -99,7 +100,7 @@ router.get("/logout", (req, res) => {
             if (err) res.send(logOutResult)
             else {
                 res.clearCookie('connect.sid')  // 세션 쿠키 삭제
-                logInResult.success = true
+                logOutResult.success = true
                 res.send(logOutResult)
             }
         })
@@ -139,13 +140,29 @@ router.put("/info", (req, res) => {
     }
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 존재하지 않습니다.");
-        const idx = req.session.user
+        const idx = req.session.user.idx
+        const currentemail = req.session.user.email
         exception.pwCheck(pw)
         exception.nameCheck(name)
         exception.emailCheck(email)
+        //이메일 중복체크
+        //이메일이 바뀌었을 때만 실행
+        if (currentemail !== email) {
+            conn.query('SELECT * FROM account WHERE email=?', [email], (err, results) => {
+                if (err) return res.send(signUpResult)
+                if (results.length > 0) {
+                    editInfoResult.message = "이미 사용 중인 이메일입니다."
+                    return res.send(editInfoResult)
+                }
+                updateInfoEvent()
+            })
+        }
+        else {updateInfoEvent()}
+        
         //정보 수정
-        conn.query('UPDATE account SET pw=?, name=?, email=? WHERE idx=?', [pw, name, email, idx], (err) => {
-            if (err) res.send(editInfoResult)
+        const updateInfoEvent = () => {
+            conn.query('UPDATE account SET pw=?, name=?, email=? WHERE idx=?', [pw, name, email, idx], (err) => {
+            if (err) return res.send(editInfoResult)
             req.session.user = {
                 pw: pw,
                 name: name,
@@ -154,11 +171,12 @@ router.put("/info", (req, res) => {
             editInfoResult.success = true 
             editInfoResult.message = "정보수정이 완료되었습니다."
             res.send(editInfoResult)
-        })
+            })
+        }
     }
     catch (e) {
-        editInfoResult.message = e.message;
-        res.status(400).send(editInfoResult);
+        editInfoResult.message = e.message
+        res.status(400).send(editInfoResult)
     }
 })
 
@@ -173,7 +191,7 @@ router.delete("/", (req, res) => {
         const idx = req.session.user.id;
         //db에 값 업데이트
         conn.query('DELETE FROM account WHERE idx=?', [idx], (err) => {
-            if (err) res.send(deleteAccountResult)
+            if (err) return res.send(deleteAccountResult)
             deleteAccountResult.success = true
             deleteAccountResult.message = "회원탈퇴가 완료되었습니다."
             res.send(deleteAccountResult)
