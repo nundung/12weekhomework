@@ -71,12 +71,13 @@ router.post("/login", (req, res) => {
             }
             // 로그인 성공
             req.session.user = {
-                idx: results.idx,
-                id: results.id,
-                pw: results.pw,
-                name: results.name,
-                email: results.email
+                idx: results[0].idx,
+                id: results[0].id,
+                pw: results[0].pw,
+                name: results[0].name,
+                email: results[0].email
             }
+            console.log(req.session.user);
             logInResult.success = true
             res.send(logInResult)
         })
@@ -120,6 +121,7 @@ router.get("/info", (req, res) => {
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 존재하지 않습니다.")
         const { id, pw, name, email } = req.session.user
+    console.log(id, pw, name, email)
         infoResult.success = true
         infoResult.data = {id, pw, name, email}
         res.send(infoResult)
