@@ -1,6 +1,5 @@
 // Import
 const router = require("express").Router();
-const session = require("express-session");
 const conn = require('../../database/connect/maria');
 
 //Apis
@@ -16,8 +15,8 @@ router.post("/:postidx", (req, res) => {
     }
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
-        const idx = req.session.user.idx;
-        console.log(idx, postIdx, content)
+        const idx = req.session.user.idx
+
         //db에 값 입력하기
         conn.query('INSERT INTO comment (post_idx, account_idx, content) VALUES (?, ?, ?)', [postIdx, idx, content], (err) => {
             if (err) throw new Error("데이터베이스가 이상해요");
@@ -46,6 +45,7 @@ router.get("/:postidx/comment", (req, res) => {
     try {
         if (!req.session.user) throw new Error("세션에 사용자 정보가 없습니다.");
     
+        //db에 값 입력하기
         conn.query('SELECT account_idx, content from comment WHERE post_idx=?', [postIdx], (err) => {
             if (err) {
                 throw new Error("데이터베이스가 이상해요");

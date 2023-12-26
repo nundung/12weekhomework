@@ -64,26 +64,25 @@ router.post("/login", (req, res) => {
         //db값 불러오기
         conn.query('SELECT * FROM account WHERE id=? AND pw=?', [id, pw], (err, results) => {
             if (err) return res.send(logInResult)
-            if (results.length === 0 || results[0] === undefined) {
+            if (results.length === 0 || results === undefined) {
                 // 로그인 실패: 해당 아이디와 비밀번호로 계정을 찾을 수 없음
                 logInResult.message = "아이디 또는 비밀번호가 올바르지 않습니다."
                 return res.send(logInResult);
             }
             // 로그인 성공
             req.session.user = {
-                idx: results[0].idx,
-                id: results[0].id,
-                pw: results[0].pw,
-                name: results[0].name,
-                email: results[0].email
+                idx: results.idx,
+                id: results.id,
+                pw: results.pw,
+                name: results.name,
+                email: results.email
             }
-            logInResult.message = "로그인에 성공했습니다."
             logInResult.success = true
             res.send(logInResult)
         })
     }
     catch (e) {
-        logInResult.message = e.message;
+        logInResult.message = e.message
         res.status(400).send(logInResult)
     }
 })
@@ -198,8 +197,8 @@ router.delete("/", (req, res) => {
         })
     }
     catch (e) {
-        deleteAccountResult.message = e.message;
-        res.status(400).send(deleteAccountResult);
+        deleteAccountResult.message = e.message
+        res.status(400).send(deleteAccountResult)
     }
 })
 
